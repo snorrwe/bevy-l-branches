@@ -4,13 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = [
-    "launchers/wasm",
-    "launchers/native",
-]
-exclude = [
-    "launchers/ios" # Special handling required
-]
+members = ["launchers/wasm"]
 
 [profile.dev]
 opt-level = 1
@@ -22,6 +16,6 @@ opt-level = 'z'
 lto = true
 
 [dependencies]
-bevy = "0.9.1"
+bevy = "0.10"
 image = "0.24.5"
 winit = "0.28.1"
