@@ -20,7 +20,7 @@ struct NextId(pub u32);
 
 #[derive(Resource)]
 struct Spline {
-    nodes: Vec<(u32, Vec3)>,
+    nodes: Vec<(u32, Vec2)>,
 }
 
 pub fn app(fullscreen: bool) -> App {
@@ -87,7 +87,7 @@ fn spawn_next_topic(
     commands
         .spawn(SpriteBundle {
             texture,
-            transform: Transform::from_translation(pos.extend(0.0)),
+            transform: Transform::from_translation(pos.extend(1.0)),
             ..default()
         })
         .insert(Vertex { id });
@@ -109,7 +109,7 @@ fn update_spline(
     spline.nodes.clear();
     spline
         .nodes
-        .extend(q.iter().map(|(tr, v)| (v.id, tr.translation())));
+        .extend(q.iter().map(|(tr, v)| (v.id, tr.translation().truncate())));
     spline.nodes.sort_unstable_by_key(|(id, _)| *id);
 
     if spline.nodes.len() < 2 {
@@ -133,7 +133,7 @@ fn update_spline(
         let mut system = lsystem::LSystem::new(rules, axiom);
 
         // TODO: number of iterations should be based on the distance of the control points?
-        for _ in 0..2 {
+        for _ in 0..3 {
             system.next().unwrap();
         }
         let system = system.next().unwrap();
@@ -142,20 +142,31 @@ fn update_spline(
         let mut pos = from.1;
         let mut stack = Vec::with_capacity(128);
         // TODO: step should be based on the distance of topics
-        let step = to.1.distance(from.1) / 10.0;
+        let step = to.1.distance(from.1) / 15.0;
         const ANGLE: f32 = std::f32::consts::TAU / 8.0;
 
-        let mut tree = commands.spawn(TransformBundle {
-            local: Transform::from_translation(from.1),
-            ..Default::default()
-        });
-        tree.insert(VisibilityBundle::default()).insert(Tree);
+        let mut tree = commands.spawn((
+            TransformBundle {
+                local: Transform::from_translation(from.1.extend(0.0)),
+                ..Default::default()
+            },
+            VisibilityBundle::default(),
+            Tree,
+        ));
 
         for c in system {
             match c {
                 'F' => pos += dir * step,
-                '-' => dir = Quat::from_rotation_z(ANGLE).mul_vec3(dir),
-                '+' => dir = Quat::from_rotation_z(-ANGLE).mul_vec3(dir),
+                '-' => {
+                    dir = Quat::from_rotation_z(ANGLE)
+                        .mul_vec3(dir.extend(0.0))
+                        .truncate()
+                }
+                '+' => {
+                    dir = Quat::from_rotation_z(-ANGLE)
+                        .mul_vec3(dir.extend(0.0))
+                        .truncate()
+                }
                 '[' => {
                     stack.push((pos, dir));
                 }
@@ -165,7 +176,9 @@ fn update_spline(
                         commands
                             .spawn(SpriteBundle {
                                 texture: asset_server.load("leaf.png"),
-                                transform: Transform::from_translation(pos),
+                                transform: Transform::from_translation(
+                                    pos.extend(0.0),
+                                ),
                                 ..default()
                             })
                             .insert(Leaf);
