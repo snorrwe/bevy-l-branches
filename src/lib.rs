@@ -146,7 +146,7 @@ fn update_spline(
         let mut system = lsystem::LSystem::new(rules, axiom);
 
         // TODO: number of iterations should be based on the distance of the control points?
-        for _ in 0..3 {
+        for _ in 0..2 {
             system.next().unwrap();
         }
         let system = system.next().unwrap();
@@ -155,8 +155,8 @@ fn update_spline(
         let mut pos = Vec2::ZERO;
         let mut stack = Vec::with_capacity(128);
         // TODO: step should be based on the distance of topics
-        let step = to.1.distance(from.1) / 30.0;
-        const ANGLE: f32 = std::f32::consts::TAU / 16.0;
+        let step = to.1.distance(from.1) / 20.0;
+        const ANGLE: f32 = std::f32::consts::TAU / 8.0;
 
         let mut tree = commands.spawn((
             TransformBundle {
