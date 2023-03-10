@@ -23,6 +23,8 @@ struct Spline {
     nodes: Vec<(u32, Vec2)>,
 }
 
+struct SplineUpdate;
+
 pub fn app(fullscreen: bool) -> App {
     let mode = if fullscreen {
         WindowMode::BorderlessFullscreen
@@ -42,6 +44,7 @@ pub fn app(fullscreen: bool) -> App {
     }))
     .insert_resource(NextId(0))
     .insert_resource(Spline { nodes: vec![] })
+    .add_event::<SplineUpdate>()
     .add_startup_system(setup)
     .add_system(update_spline);
     app
@@ -51,6 +54,7 @@ fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut next_id: ResMut<NextId>,
+    mut ev: EventWriter<SplineUpdate>,
 ) {
     commands.spawn(Camera2dBundle::default());
 
@@ -73,6 +77,8 @@ fn setup(
         Vec2::new(100.0, 250.0),
         texture.clone(),
     );
+
+    ev.send(SplineUpdate);
 }
 
 fn spawn_next_topic(
@@ -95,16 +101,17 @@ fn spawn_next_topic(
 
 fn update_spline(
     q: Query<(&GlobalTransform, &Vertex)>,
-    change: Query<(), Changed<Vertex>>,
     mut spline: ResMut<Spline>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     trees: Query<Entity, With<Tree>>,
+    mut ev: EventReader<SplineUpdate>,
 ) {
     // if any vertex changes update the whole spline
-    if change.iter().next().is_none() {
+    if ev.iter().next().is_none() {
         return;
     }
+    ev.clear();
     info!("Updating spline");
     spline.nodes.clear();
     spline
