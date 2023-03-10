@@ -13,7 +13,6 @@ opt-level = 1
 panic = 'abort'
 codegen-units = 1
 opt-level = 'z'
-lto = true
 
 [dependencies]
 bevy = "0.10"
