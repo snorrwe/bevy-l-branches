@@ -1,6 +1,7 @@
 use std::hint::unreachable_unchecked;
 
 use bevy::{prelude::*, window::WindowMode};
+use bevy_prototype_lyon::prelude::*;
 
 pub const LAUNCHER_TITLE: &str = "L-branches";
 
@@ -42,6 +43,7 @@ pub fn app(fullscreen: bool) -> App {
         }),
         ..default()
     }))
+    .add_plugin(ShapePlugin)
     .insert_resource(NextId(0))
     .insert_resource(Spline { nodes: vec![] })
     .add_event::<SplineUpdate>()
@@ -68,7 +70,7 @@ fn setup(
     spawn_next_topic(
         &mut commands,
         &mut next_id,
-        Vec2::new(200.0, 150.0),
+        Vec2::new(300.0, 50.0),
         texture.clone(),
     );
     spawn_next_topic(
@@ -146,11 +148,11 @@ fn update_spline(
         let system = system.next().unwrap();
 
         let mut dir = (to.1 - from.1).normalize();
-        let mut pos = from.1;
+        let mut pos = Vec2::ZERO;
         let mut stack = Vec::with_capacity(128);
         // TODO: step should be based on the distance of topics
-        let step = to.1.distance(from.1) / 15.0;
-        const ANGLE: f32 = std::f32::consts::TAU / 8.0;
+        let step = to.1.distance(from.1) / 30.0;
+        const ANGLE: f32 = std::f32::consts::TAU / 16.0;
 
         let mut tree = commands.spawn((
             TransformBundle {
@@ -163,7 +165,22 @@ fn update_spline(
 
         for c in system {
             match c {
-                'F' => pos += dir * step,
+                'F' => {
+                    let new_pos = pos + dir * step;
+                    let shape = bevy_prototype_lyon::shapes::Line(pos, new_pos);
+                    pos = new_pos;
+
+                    tree.with_children(move |commands| {
+                        commands.spawn((
+                            ShapeBundle {
+                                path: GeometryBuilder::build_as(&shape),
+                                ..default()
+                            },
+                            Fill::color(Color::CYAN),
+                            Stroke::new(Color::BLACK, 10.0),
+                        ));
+                    });
+                }
                 '-' => {
                     dir = Quat::from_rotation_z(ANGLE)
                         .mul_vec3(dir.extend(0.0))
@@ -183,9 +200,7 @@ fn update_spline(
                         commands
                             .spawn(SpriteBundle {
                                 texture: asset_server.load("leaf.png"),
-                                transform: Transform::from_translation(
-                                    pos.extend(0.0),
-                                ),
+                                transform: Transform::from_translation(pos.extend(0.5)),
                                 ..default()
                             })
                             .insert(Leaf);
