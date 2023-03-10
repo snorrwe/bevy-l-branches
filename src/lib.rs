@@ -1,4 +1,6 @@
-use bevy::{ecs::query::QueryEntityError, prelude::*, window::WindowMode};
+use std::hint::unreachable_unchecked;
+
+use bevy::{prelude::*, window::WindowMode};
 
 pub const LAUNCHER_TITLE: &str = "L-branches";
 
@@ -6,6 +8,12 @@ pub const LAUNCHER_TITLE: &str = "L-branches";
 struct Vertex {
     pub id: u32,
 }
+
+#[derive(Component)]
+struct Leaf;
+
+#[derive(Component)]
+struct Tree;
 
 #[derive(Resource)]
 struct NextId(pub u32);
@@ -46,39 +54,52 @@ fn setup(
 ) {
     commands.spawn(Camera2dBundle::default());
 
-    commands
-        .spawn(SpriteBundle {
-            texture: asset_server.load("topic.png"),
-            transform: Transform::from_translation(Vec3::new(
-                -200.0, -50.0, 0.0,
-            )),
-            ..default()
-        })
-        .insert(Vertex { id: 0 });
-    commands
-        .spawn(SpriteBundle {
-            texture: asset_server.load("topic.png"),
-            transform: Transform::from_translation(Vec3::new(200.0, 50.0, 0.0)),
-            ..default()
-        })
-        .insert(Vertex { id: 1 });
-    commands
-        .spawn(SpriteBundle {
-            texture: asset_server.load("topic.png"),
-            transform: Transform::from_translation(Vec3::new(
-                150.0, 250.0, 0.0,
-            )),
-            ..default()
-        })
-        .insert(Vertex { id: 2 });
+    let texture = asset_server.load("topic.png");
+    spawn_next_topic(
+        &mut commands,
+        &mut next_id,
+        Vec2::new(-200.0, -50.0),
+        texture.clone(),
+    );
+    spawn_next_topic(
+        &mut commands,
+        &mut next_id,
+        Vec2::new(200.0, 150.0),
+        texture.clone(),
+    );
+    spawn_next_topic(
+        &mut commands,
+        &mut next_id,
+        Vec2::new(100.0, 250.0),
+        texture.clone(),
+    );
+}
 
-    next_id.0 = 3;
+fn spawn_next_topic(
+    commands: &mut Commands,
+    next_id: &mut NextId,
+    pos: Vec2,
+    texture: Handle<Image>,
+) {
+    let id = next_id.0;
+    next_id.0 += 1;
+
+    commands
+        .spawn(SpriteBundle {
+            texture,
+            transform: Transform::from_translation(pos.extend(0.0)),
+            ..default()
+        })
+        .insert(Vertex { id });
 }
 
 fn update_spline(
     q: Query<(&GlobalTransform, &Vertex)>,
     change: Query<(), Changed<Vertex>>,
     mut spline: ResMut<Spline>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    trees: Query<Entity, With<Tree>>,
 ) {
     // if any vertex changes update the whole spline
     if change.iter().next().is_none() {
@@ -90,4 +111,70 @@ fn update_spline(
         .nodes
         .extend(q.iter().map(|(tr, v)| (v.id, tr.translation())));
     spline.nodes.sort_unstable_by_key(|(id, _)| *id);
+
+    if spline.nodes.len() < 2 {
+        return;
+    }
+
+    // clear leaves
+    //
+    for id in trees.iter() {
+        commands.entity(id).despawn_recursive();
+    }
+
+    for win in spline.nodes.windows(2) {
+        let [from, to] = win else {
+            unsafe {unreachable_unchecked();}
+        };
+        let mut rules = lsystem::MapRules::new();
+        rules.set_str('X', "F+[[X]-X]-F[-FX]+X");
+        rules.set_str('F', "FF");
+        let axiom = vec!['X'];
+        let mut system = lsystem::LSystem::new(rules, axiom);
+
+        // TODO: number of iterations should be based on the distance of the control points?
+        for _ in 0..2 {
+            system.next().unwrap();
+        }
+        let system = system.next().unwrap();
+
+        let mut dir = (to.1 - from.1).normalize();
+        let mut pos = from.1;
+        let mut stack = Vec::with_capacity(128);
+        // TODO: step should be based on the distance of topics
+        let step = to.1.distance(from.1) / 10.0;
+        const ANGLE: f32 = std::f32::consts::TAU / 8.0;
+
+        let mut tree = commands.spawn(TransformBundle {
+            local: Transform::from_translation(from.1),
+            ..Default::default()
+        });
+        tree.insert(VisibilityBundle::default()).insert(Tree);
+
+        for c in system {
+            match c {
+                'F' => pos += dir * step,
+                '-' => dir = Quat::from_rotation_z(ANGLE).mul_vec3(dir),
+                '+' => dir = Quat::from_rotation_z(-ANGLE).mul_vec3(dir),
+                '[' => {
+                    stack.push((pos, dir));
+                }
+                ']' => {
+                    // branch is done, insert a leaf
+                    tree.with_children(|commands| {
+                        commands
+                            .spawn(SpriteBundle {
+                                texture: asset_server.load("leaf.png"),
+                                transform: Transform::from_translation(pos),
+                                ..default()
+                            })
+                            .insert(Leaf);
+                    });
+                    (pos, dir) = stack.pop().unwrap();
+                }
+                'X' => {}
+                _ => unreachable!("unexpected char {c}"),
+            }
+        }
+    }
 }

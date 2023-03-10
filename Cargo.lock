@@ -1669,6 +1669,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "image",
+ "lsystem",
  "winit",
 ]
 
@@ -2378,6 +2379,12 @@ checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
  "cfg-if",
 ]
+
+[[package]]
+name = "lsystem"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23c47210f2a9f5ae2073e7b847026e3233bcb012aa6845201c69c26481762a81"
 
 [[package]]
 name = "mach"
