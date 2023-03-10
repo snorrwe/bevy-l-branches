@@ -1,7 +1,8 @@
 name: Release WASM (GitHub Pages)
 on:
   push:
-    tags: ["v*"]
+    branches:
+      - main
 
 env:
   PUBLIC_URL: /l-leaves/
