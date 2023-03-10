@@ -52,9 +52,11 @@ fn view() -> Html {
 
 fn main() {
     // Mount the DOM
-    yew::start_app::<Root>();
-    // Start the Bevy App
-    let mut app = game::app(false);
-    info!("Starting launcher: WASM");
-    app.run();
+    let app = yew::Renderer::<Root>::new();
+    app.render().send_future(async move {
+        // Start the Bevy App
+        let mut app = game::app(false);
+        info!("Starting launcher: WASM");
+        app.run();
+    });
 }
