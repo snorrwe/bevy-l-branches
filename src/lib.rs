@@ -101,6 +101,10 @@ fn spawn_next_topic(
         .insert(Vertex { id });
 }
 
+fn lerp(a: f32, b: f32, t: f32) -> f32 {
+    (1.0 - t) * a + t * b
+}
+
 fn update_spline(
     q: Query<(&GlobalTransform, &Vertex)>,
     mut spline: ResMut<Spline>,
@@ -168,6 +172,8 @@ fn update_spline(
                 'F' => {
                     let new_pos = pos + dir * step;
                     let shape = bevy_prototype_lyon::shapes::Line(pos, new_pos);
+
+                    let t = 1.0 - pos.distance_squared(from.1) / from.1.distance_squared(to.1);
                     pos = new_pos;
 
                     tree.with_children(move |commands| {
@@ -176,8 +182,7 @@ fn update_spline(
                                 path: GeometryBuilder::build_as(&shape),
                                 ..default()
                             },
-                            Fill::color(Color::CYAN),
-                            Stroke::new(Color::BLACK, 10.0),
+                            Stroke::new(Color::BLACK, lerp(5.0, 10.0, t)),
                         ));
                     });
                 }
