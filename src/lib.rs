@@ -1,7 +1,10 @@
+pub mod transport;
+
 use std::hint::unreachable_unchecked;
 
 use bevy::{prelude::*, window::WindowMode};
 use bevy_prototype_lyon::prelude::*;
+use transport::EventHandle;
 
 pub const LAUNCHER_TITLE: &str = "L-branches";
 
@@ -26,7 +29,7 @@ struct Spline {
 
 struct SplineUpdate;
 
-pub fn app(fullscreen: bool) -> App {
+pub fn app(fullscreen: bool, events: EventHandle) -> App {
     let mode = if fullscreen {
         WindowMode::BorderlessFullscreen
     } else {
@@ -44,6 +47,7 @@ pub fn app(fullscreen: bool) -> App {
         ..default()
     }))
     .add_plugin(ShapePlugin)
+    .add_plugin(transport::EventPlugin { handle: events })
     .insert_resource(NextId(0))
     .insert_resource(Spline { nodes: vec![] })
     .add_event::<SplineUpdate>()
