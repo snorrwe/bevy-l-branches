@@ -61,8 +61,8 @@ fn view(props: &RootProps) -> Html {
     html! {
         <div class={ css }>
             <button onclick={Callback::from(move |_|{
-                handler.sender.try_send(Event::Hello).unwrap();
-            })}>{"Hello"}</button>
+                handler.sender.try_send(Event::AddTopic).unwrap();
+            })}>{"New topic"}</button>
             <canvas id="bevy"></canvas>
         </div>
     }

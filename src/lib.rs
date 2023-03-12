@@ -52,6 +52,9 @@ pub fn app(fullscreen: bool, events: EventHandle) -> App {
     .insert_resource(Spline { nodes: vec![] })
     .add_event::<SplineUpdate>()
     .add_startup_system(setup)
+    // because of command resolution on_new_topic_msg has to come after update_spline,
+    // so update_spline can see the new nodes when handling the events
+    .add_system(on_new_topic_msg.after(update_spline))
     .add_system(update_spline);
     app
 }
@@ -85,6 +88,25 @@ fn setup(
     );
 
     ev.send(SplineUpdate);
+}
+
+fn on_new_topic_msg(
+    mut ev: EventReader<transport::ReceiveEvent>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut next_id: ResMut<NextId>,
+    mut update: EventWriter<SplineUpdate>,
+) {
+    let texture = asset_server.load("topic.png");
+    for ev in ev.iter() {
+        match ev.0 {
+            transport::Event::AddTopic => {
+                let pos = Vec2::new(-120.0, 89.0); // TODO: random pos
+                spawn_next_topic(&mut commands, &mut next_id, pos, texture.clone());
+                update.send(SplineUpdate);
+            }
+        }
+    }
 }
 
 fn spawn_next_topic(

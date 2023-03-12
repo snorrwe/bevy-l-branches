@@ -19,7 +19,7 @@ impl EventHandle {
 
 #[derive(Clone, Debug)]
 pub enum Event {
-    Hello,
+    AddTopic,
 }
 
 pub struct EventPlugin {
@@ -41,7 +41,7 @@ impl Plugin for EventPlugin {
 
 fn receive(handle: ResMut<EventHandle>, mut events: EventWriter<ReceiveEvent>) {
     if let Ok(ev) = handle.receiver.try_recv() {
-        info!("pog {:?}", ev);
+        debug!("message from UI: {ev:?}");
         events.send(ReceiveEvent(ev));
     }
 }
