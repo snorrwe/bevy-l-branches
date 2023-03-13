@@ -5,7 +5,7 @@ on:
       - main
 
 env:
-  PUBLIC_URL: /bevy-l-leaves/
+  PUBLIC_URL: /bevy-l-branches/
 
 jobs:
   build:
