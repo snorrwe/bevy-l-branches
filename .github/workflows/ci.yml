@@ -44,7 +44,9 @@ jobs:
 
       - name: Setup | Ubuntu dependencies
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt install --fix-missing libasound2-dev libudev-dev pkg-config
+        run: |
+          sudo apt update
+          sudo apt install --fix-missing libasound2-dev libudev-dev pkg-config
 
       - name: Test
         run: cargo test
